@@ -1,5 +1,10 @@
 package dev.matejgroombridge.voquab.ui.screens
 
+import android.Manifest
+import android.app.TimePickerDialog
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,8 +50,10 @@ import dev.matejgroombridge.voquab.BuildConfig
 import dev.matejgroombridge.voquab.R
 import dev.matejgroombridge.voquab.data.settings.WeekStart
 import dev.matejgroombridge.voquab.ui.SettingsViewModel
+import dev.matejgroombridge.voquab.ui.components.hasNotificationPermission
 import dev.matejgroombridge.voquab.ui.theme.ThemeMode
 import dev.matejgroombridge.voquab.ui.util.rememberHaptics
+import java.time.LocalTime
 
 /**
  * Settings is intentionally kept calm and uncluttered: a couple of grouped
@@ -61,6 +69,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
+    val context = LocalContext.current
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -115,6 +124,50 @@ fun SettingsScreen(
                             viewModel.setAmoled(it)
                         },
                     )
+                }
+            }
+
+            // Notifications -------------------------------------------------
+            SectionCaption("Notifications")
+            SettingsCard(contentPadding = 0.dp) {
+                Column {
+                    val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                            // Denied: switch back off so the setting matches reality.
+                            if (!granted) viewModel.setWeeklyEnabled(false)
+                        }
+                    } else null
+                    CompactSwitchRow(
+                        label = "Weekly word",
+                        checked = settings.weekly.enabled,
+                        onCheckedChange = { wantsOn ->
+                            haptics.light()
+                            viewModel.setWeeklyEnabled(wantsOn)
+                            if (wantsOn && notifPermission != null && !hasNotificationPermission(context)) {
+                                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                    )
+                    if (settings.weekly.enabled) {
+                        Divider()
+                        TimeRow(
+                            label = "New word arrives at",
+                            time = settings.weekly.announceTime,
+                            onPick = {
+                                haptics.light()
+                                viewModel.setWeeklyAnnounceTime(it)
+                            },
+                        )
+                        Divider()
+                        CompactSwitchRow(
+                            label = "Remind me if I haven't used it",
+                            checked = settings.weekly.reminders,
+                            onCheckedChange = {
+                                haptics.light()
+                                viewModel.setWeeklyReminders(it)
+                            },
+                        )
+                    }
                 }
             }
 
@@ -345,6 +398,48 @@ private fun WeekStartNavRow(selected: WeekStart, onChange: (WeekStart) -> Unit) 
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
         )
+    }
+}
+
+/** Opens the system time picker; the trailing pill shows the current time. */
+@Composable
+private fun TimeRow(
+    label: String,
+    time: String,
+    onPick: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    val parsed = runCatching { LocalTime.parse(time) }.getOrDefault(LocalTime.of(8, 0))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = SETTINGS_ROW_MIN_HEIGHT)
+            .clickable {
+                TimePickerDialog(context, { _, h, m ->
+                    onPick(LocalTime.of(h, m).toString())
+                }, parsed.hour, parsed.minute, true).show()
+            }
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Text(
+                text = parsed.toString(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 

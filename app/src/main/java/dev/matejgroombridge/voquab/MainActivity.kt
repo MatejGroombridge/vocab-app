@@ -1,6 +1,7 @@
 package dev.matejgroombridge.voquab
 
 import android.app.Application
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,18 +32,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.matejgroombridge.voquab.ui.LibraryViewModel
 import dev.matejgroombridge.voquab.ui.SettingsViewModel
+import dev.matejgroombridge.voquab.ui.WeekViewModel
 import dev.matejgroombridge.voquab.ui.screens.LibraryScreen
 import dev.matejgroombridge.voquab.ui.screens.SettingsScreen
 import dev.matejgroombridge.voquab.ui.screens.TodayScreen
 import dev.matejgroombridge.voquab.ui.screens.WeekScreen
 import dev.matejgroombridge.voquab.ui.theme.AppTheme
 import dev.matejgroombridge.voquab.ui.util.rememberHaptics
+import dev.matejgroombridge.voquab.weekly.WeeklyAlarms
+import dev.matejgroombridge.voquab.weekly.WeeklyNotifications
 import kotlinx.coroutines.launch
 
 private object Routes {
@@ -60,6 +65,7 @@ private data class BottomTab(
 // Today sits in the middle so the user can swipe to it from either side; it's
 // also the page the app launches on (see [TODAY_PAGE_INDEX] / initialPage).
 // Adjust both this list AND the `when (page)` switch in MainPager() to add a tab.
+private const val WEEK_PAGE_INDEX = 0
 private const val TODAY_PAGE_INDEX = 1
 private val BOTTOM_TABS = listOf(
     BottomTab("This Week", Icons.Outlined.ChatBubbleOutline),
@@ -68,10 +74,20 @@ private val BOTTOM_TABS = listOf(
 )
 
 class MainActivity : ComponentActivity() {
+
+    /** Tab a notification asked us to show; consumed once the pager has jumped to it. */
+    private var requestedTab by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (savedInstanceState == null) requestedTab = intent.getStringExtra(EXTRA_OPEN_TAB)
+
+        // Cheap and idempotent: make sure the weekly-word channel exists and
+        // the daily alarms match current settings (they're lost on update).
+        WeeklyNotifications.ensureChannel(this)
+        lifecycleScope.launch { WeeklyAlarms.rescheduleAll(applicationContext) }
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel(
@@ -87,21 +103,49 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppShell(settingsViewModel = settingsViewModel)
+                    AppShell(
+                        settingsViewModel = settingsViewModel,
+                        requestedTab = requestedTab,
+                        onTabShown = { requestedTab = null },
+                    )
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.getStringExtra(EXTRA_OPEN_TAB)?.let { requestedTab = it }
+    }
+
+    companion object {
+        /** Intent extra naming a top-level tab to open, e.g. from a notification. */
+        const val EXTRA_OPEN_TAB = "open_tab"
+        const val TAB_WEEK = "week"
+    }
 }
 
 @Composable
-private fun AppShell(settingsViewModel: SettingsViewModel) {
+private fun AppShell(
+    settingsViewModel: SettingsViewModel,
+    requestedTab: String?,
+    onTabShown: () -> Unit,
+) {
     val navController = rememberNavController()
     val app = LocalContext.current.applicationContext as Application
 
     val libraryViewModel: LibraryViewModel = viewModel(
         factory = LibraryViewModel.factory(app),
     )
+    val weekViewModel: WeekViewModel = viewModel(
+        factory = WeekViewModel.factory(app),
+    )
+
+    // A notification tap should land on the pager even if Settings is open.
+    LaunchedEffect(requestedTab) {
+        if (requestedTab != null) navController.popBackStack(Routes.MAIN, inclusive = false)
+    }
 
     NavHost(
         navController = navController,
@@ -112,6 +156,9 @@ private fun AppShell(settingsViewModel: SettingsViewModel) {
             MainPager(
                 settingsViewModel = settingsViewModel,
                 libraryViewModel = libraryViewModel,
+                weekViewModel = weekViewModel,
+                requestedTab = requestedTab,
+                onTabShown = onTabShown,
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
@@ -134,6 +181,9 @@ private fun AppShell(settingsViewModel: SettingsViewModel) {
 private fun MainPager(
     settingsViewModel: SettingsViewModel,
     libraryViewModel: LibraryViewModel,
+    weekViewModel: WeekViewModel,
+    requestedTab: String?,
+    onTabShown: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val pagerState = rememberPagerState(
@@ -153,6 +203,14 @@ private fun MainPager(
             haptics.light()
             lastPage = pagerState.currentPage
         }
+    }
+
+    LaunchedEffect(requestedTab) {
+        when (requestedTab) {
+            MainActivity.TAB_WEEK -> pagerState.scrollToPage(WEEK_PAGE_INDEX)
+            null -> return@LaunchedEffect
+        }
+        onTabShown()
     }
 
     Scaffold(
@@ -193,7 +251,12 @@ private fun MainPager(
             userScrollEnabled = settings.swipeToNavigate,
         ) { page ->
             when (page) {
-                0 -> WeekScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
+                WEEK_PAGE_INDEX -> WeekScreen(
+                    viewModel = weekViewModel,
+                    notificationsEnabled = settings.weekly.enabled,
+                    onOpenSettings = onOpenSettings,
+                    contentPadding = padding,
+                )
                 TODAY_PAGE_INDEX -> TodayScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
                 2 -> LibraryScreen(
                     viewModel = libraryViewModel,

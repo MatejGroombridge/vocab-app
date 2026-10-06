@@ -117,4 +117,7 @@ dependencies {
     // Persistence
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
+
+    // Plain JVM tests for the pure rules in domain/ (streaks, scheduling).
+    testImplementation(libs.junit)
 }

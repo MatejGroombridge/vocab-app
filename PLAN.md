@@ -101,19 +101,31 @@ Week Start setting).
   so the weekly word reinforces what the reviews are already teaching.
 - It never repeats a word that has already been a weekly word.
 - **Swap:** one free re-roll per week, available until you've logged a use.
+  A swapped-away word never comes back as a weekly word.
+- **The first week** starts the day the app is first opened. If fewer than
+  4 days are left in it, it runs on to the end of the following week.
+- **Weeks the app sleeps through** are filled in as missed (or as paused,
+  during a break), so the history never has gaps.
 
 **Notifications** (on their own "Weekly word" channel):
 
 | When | What | Buttons |
 |---|---|---|
 | Week start, 8:00 (configurable) | "This week: **adroit** — skilful, clever" + one example line | `Swap` |
-| Mid-week, 18:00, only if not yet used | Nudge with a *different* example line | `I used it` |
+| Mid-week (4th day), 18:00, only if not yet used | Nudge with a *different* example line | `I used it` |
 | Last day, 18:00, only if not yet used | Last call | `I used it` |
+| Morning after the week ends, if unused | "Did you use it last week?" (grace period) | `I used it` |
+
+These come from two daily alarms (the announcement time and 18:00). Each
+time one fires, the app checks the current week and usually sends nothing.
+This means changing the week start, pausing or swapping never leaves a
+stale alarm behind.
 
 **Logging a use** is one tap from the notification, the widget or the app.
-- In the app you can then add an optional one-line note
-  ("told Sam his parking was adroit"). The notes build up into a small
-  journal you can scroll back through.
+- An optional one-line note ("told Sam his parking was adroit") can be
+  added from the card or by tapping a past week. You're never prompted for
+  it, because a prompt would hide the confetti and add a step to a one-tap
+  action. The notes build up into a small journal.
 - **Grace period:** a use can still be logged for last week until 12:00 on
   the first day of the new week, so forgetting to tap on Sunday night
   doesn't break the streak.
@@ -121,16 +133,18 @@ Week Start setting).
   moment #1).
 
 **The tab shows:**
-- A large weekly-word card with definition, pronunciation and
-  **"3 ways to drop it into conversation"**. These are ready-to-say lines
-  for ordinary situations like work, sport or food, so using the word
-  doesn't depend on inspiration.
+- A large weekly-word card with definition, 🔊 and **"Ways to use it"**:
+  one or two ready-to-say lines for ordinary situations like work, sport
+  or food, so using the word doesn't depend on inspiration.
 - Stat tiles reused from the habit overview dialog: Current 🔥, Best 🏆,
   Total used ✅.
-- A week-by-week history grid reused from the All Time grid: one cell per
-  week, filled if you used the word, tap a cell to see its note.
-- **Pause** (holiday mode) freezes the streak, the same way pausing works
-  in the Habit Tracker.
+- A "Past weeks" list (newest first): each week's word, its dates, and
+  whether it was Used ✓, Missed, Paused or still "Log by noon", plus its
+  note. I chose a list over a grid because there's only one cell per week,
+  so a list has room for the word and the note.
+- **Pause** (holiday mode, the ⏸ in the header) freezes the streak, the
+  same way pausing works in the Habit Tracker. A week already used stays
+  on screen. The break starts the following week.
 
 ### 3.3 Notification quizzes *(the main way of learning)*
 
@@ -213,10 +227,14 @@ else into `app/src/main/assets/words.json`, and it ships in a release.
   active words are conversational enough to be a weekly word, which is
   about three years of weekly words.
 - **The format and writing guidelines** are in [`tools/README.md`](tools/README.md).
-  Each word has a respelling (`uh-DROYT`, easier to read than IPA), a
-  short meaning for notification buttons, a definition, 2+ examples with
-  the word marked, a real origin story, related forms, synonyms, and
-  conversation openers for weekly-word candidates.
+  Each word has a short meaning for notification buttons, a definition,
+  one or two examples with the word marked, a real origin story, related
+  forms, synonyms, and one or two conversation openers for weekly-word
+  candidates.
+- **Two sentences only when they really differ** in sense, form or
+  situation; 66 words have a single example. There's no written
+  pronunciation: the 🔊 button speaks the word in an Australian voice (or
+  failing that, a British one).
 - **Adding words:** append them to `tools/words.txt`, ask me to write the
   entries, then run `node tools/check-words.mjs --fix`. It validates
   every entry and confirms each listed word is covered.
@@ -264,10 +282,11 @@ scheduling tests.
 ### New code
 
 ```
-data/model/      Word (asset content) · WordProgress (progress) · WeeklyWeek · Review
+data/model/      Word (asset content) · WordProgress (progress) · WeeklyState / WeekEntry · Review
 data/repository/ WordRepository (asset + custom words) · ProgressRepository (DataStore)
-domain/          Scheduler · DailySet · Distractors · WeeklyWordPicker · Streak   ← plain Kotlin, unit-tested
-notifications/   QuizNotification · QuizAnswerReceiver · WeeklyWordAlarms
+domain/          Day · WeekMath · WeeklyEngine · WeeklyPicker · Scheduler · DailySet · Distractors   ← plain Kotlin, unit-tested
+weekly/          WeeklyService · WeeklyAlarms · WeeklyAlarmReceiver · WeeklyActionReceiver · WeeklyNotifications
+notifications/   QuizNotification · QuizAnswerReceiver   (Phase 4)
 tts/             Speaker (wrapper around Android's TextToSpeech)
 ui/screens/      TodayScreen · WeekScreen · LibraryScreen · SettingsScreen
 ui/components/   ReviewCard (Meet / MultipleChoice / Cloze / Recall) · WordCard · WordDetailDialog
@@ -320,11 +339,15 @@ functions get JVM unit tests. Cases to cover:
   (`domain/Day`), which every later phase uses.
 - ✅ All your words can be browsed and searched, with full details.
 
-**Phase 2: Weekly word + streak** *(your core requirement, so it ships early)*
+**Phase 2: Weekly word + streak** — ✔ built
 - Picker, Week tab, the three notifications with their buttons, the grace
   period, swap, pause, confetti, and streak logic with tests.
 - ✅ The weekly word notification arrives, the use can be logged from the
   notification, and the streak is correct across week boundaries.
+  (Checked on an emulator by moving its clock forward: announcement, swap
+  from the shade, mid-week nudge → "I used it", grace period on Monday
+  morning, pause and resume. The rules have 23 JVM unit tests in
+  `app/src/test`.)
 
 **Phase 3: Learning engine + Today**
 - Scheduler, daily-set builder, wrong-answer generator, the 4 card types,

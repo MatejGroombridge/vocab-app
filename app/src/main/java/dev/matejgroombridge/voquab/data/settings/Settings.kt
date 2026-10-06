@@ -21,4 +21,20 @@ data class Settings(
      * / Library. When `false` the pager only responds to bottom-bar taps.
      */
     val swipeToNavigate: Boolean = true,
+    val weekly: WeeklyNotificationSettings = WeeklyNotificationSettings(),
+)
+
+/**
+ * Notifications for the weekly word. Local only — scheduled with
+ * AlarmManager by `WeeklyAlarms`.
+ *
+ * @param enabled       Master switch for every weekly-word notification.
+ * @param announceTime  "HH:MM" on the first day of the week when the new word is announced.
+ *                      Also when last week's grace-period reminder goes out.
+ * @param reminders     Mid-week nudge and last-day call, only sent while the word is unused.
+ */
+data class WeeklyNotificationSettings(
+    val enabled: Boolean = true,
+    val announceTime: String = "08:00",
+    val reminders: Boolean = true,
 )

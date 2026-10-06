@@ -14,6 +14,16 @@ const sourcePath = join(root, "tools/words.txt");
 
 const SHELVED_REASONS = new Set(["common", "name", "offensive", "archaic", "foreign", "fragment"]);
 const GLOSS_MAX = 18;
+const MAX_SENTENCES = 2;
+// Two sentences sharing more than this share of their content words are
+// probably the same example twice — keep one, or rewrite the second to show
+// a different sense, form or situation.
+const MAX_OVERLAP = 0.34;
+const STOPWORDS = new Set((
+  "a an the and or but of to in on at for with by from is are was were be been it its " +
+  "this that these those i you he she we they me my your his her our their him them us so as if into out up " +
+  "about after all just very more most no not too than then there here what who how when s t ll d re ve m"
+).split(" "));
 
 const words = JSON.parse(readFileSync(wordsPath, "utf8"));
 const errors = [];
@@ -26,7 +36,7 @@ for (const w of words) {
   if (ids.has(w.id)) err(id, "duplicate id");
   ids.add(w.id);
 
-  for (const f of ["term", "pos", "say", "gloss", "definition"]) {
+  for (const f of ["term", "pos", "gloss", "definition"]) {
     if (typeof w[f] !== "string" || !w[f].trim()) err(id, `missing ${f}`);
   }
   if (w.gloss && w.gloss.length > GLOSS_MAX) err(id, `gloss "${w.gloss}" is over ${GLOSS_MAX} chars`);
@@ -40,16 +50,38 @@ for (const w of words) {
 
   const active = w.shelved === undefined;
   const examples = w.examples ?? [];
-  if (examples.length < (active ? 2 : 1)) err(id, `needs at least ${active ? 2 : 1} examples`);
+  const openers = w.openers ?? [];
+  if (examples.length < 1) err(id, "needs at least 1 example");
+  if (examples.length > MAX_SENTENCES) err(id, `at most ${MAX_SENTENCES} examples`);
+  if (openers.length > MAX_SENTENCES) err(id, `at most ${MAX_SENTENCES} openers`);
+  for (const [kind, list] of [["examples", examples], ["openers", openers]]) {
+    if (list.length === 2) {
+      const o = overlap(list[0], list[1], w);
+      if (o > MAX_OVERLAP) err(id, `${kind} too alike (${Math.round(o * 100)}% shared words) — keep one or make them differ`);
+    }
+  }
   // Every example marks the target word with *asterisks* so cards can
   // bold it (recognition) or blank it out (fill-in-the-blank).
   for (const ex of examples) {
     if (!/\*[^*]+\*/.test(ex)) err(id, `example is missing *marked* word: ${ex}`);
   }
-  // Weekly-word candidates need ready-to-say lines.
-  if (active && w.conversational >= 2 && (w.openers ?? []).length < 2) {
-    err(id, "conversational >= 2 needs at least 2 openers");
+  // Weekly-word candidates need at least one ready-to-say line.
+  if (active && w.conversational >= 2 && openers.length < 1) {
+    err(id, "conversational >= 2 needs an opener");
   }
+}
+
+/** Share of content words two sentences have in common (Jaccard), ignoring the word itself. */
+function overlap(a, b, w) {
+  const own = [w.term, ...(w.forms ?? [])].flatMap((f) => f.toLowerCase().split(/\s+/));
+  const contentWords = (t) => new Set(
+    t.toLowerCase().replace(/[^a-z' ]/g, " ").split(/\s+/)
+      .filter((x) => x.length > 1 && !STOPWORDS.has(x) && !own.some((f) => x.startsWith(f.slice(0, 5)))),
+  );
+  const A = contentWords(a);
+  const B = contentWords(b);
+  const shared = [...A].filter((x) => B.has(x)).length;
+  return shared / Math.max(1, new Set([...A, ...B]).size);
 }
 
 // Coverage: each looked-up word must match some entry's id, term,

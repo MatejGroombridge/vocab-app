@@ -24,18 +24,17 @@ history.
   "id": "adroit",                 // stable key: lowercase ascii kebab-case
   "term": "adroit",               // display form: accents/capitals allowed ("éminence grise")
   "pos": "adjective",             // noun · verb · adjective · adverb · preposition · prefix · name · exclamation
-  "say": "uh-DROYT",              // plain-English respelling, stressed syllable in CAPS
   "gloss": "skilful",             // ≤ 18 chars. Used on notification answer buttons
   "definition": "Clever and skilful, especially at handling people or tricky situations.",
-  "examples": [                   // ≥ 2 (≥ 1 if shelved). The target word is wrapped in
-    "She gave an *adroit* answer…"  // *asterisks* so cards can bold or blank it
+  "examples": [                   // 1–2. The target word is wrapped in *asterisks*
+    "She gave an *adroit* answer…"  // so cards can bold it or blank it out
   ],
   "hook": "French à droit, 'to the right'…",  // one-line origin story / memory hook
   "forms": ["adroitly", "adroitness"],        // related forms (also used to match words.txt)
   "synonyms": ["deft", "nimble"],
   "conversational": 3,            // 1 literary/technical · 2 usable · 3 easy to say in conversation
   "usefulness": 3,                // introduction order: 3 first, 1 last
-  "openers": ["That was an adroit bit of parking."],  // ready-to-say lines; ≥ 2 when conversational ≥ 2
+  "openers": ["That was an adroit bit of parking."],  // 1–2 ready-to-say lines; required when conversational ≥ 2
   "lookedUp": "affably",          // optional: the form in words.txt, when it differs from term
   "shelved": "common"             // optional: starts on the Shelved list. One of
                                   // common · name · offensive · archaic · foreign · fragment
@@ -47,8 +46,16 @@ history.
 - **Definitions:** one plain sentence a smart 15-year-old would follow. When
   the word was probably looked up for a less obvious sense (*temporal* as
   "worldly", *pious* as "preachy"), cover that sense.
-- **Examples:** modern and natural, not dictionary-stiff. Two different
-  situations, so a fill-in-the-blank card has variety.
+- **Examples and openers: at most two each, and only two if they really
+  differ.** Each should show a different sense (*congeal*: gravy vs. a
+  plan), a different form (*furtive* vs. *furtively*), or a clearly
+  different situation. Two sentences that say the same thing in a
+  different setting don't count: keep one. Most single-sense concrete
+  nouns (*ammonite*, *armoire*) only need one. The validator flags pairs
+  that share too many words.
+- **Examples** are modern and natural, not dictionary-stiff.
+- **No respellings.** Pronunciation comes from the 🔊 button
+  (text-to-speech in an Australian or British voice).
 - **Hooks:** only real etymology. Say "possibly" when the origin is
   uncertain. Never invent one. A good hook links to a word you already know
   (gelid → gelato, incisive → incisor).

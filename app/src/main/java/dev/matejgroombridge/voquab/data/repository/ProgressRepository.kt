@@ -52,6 +52,18 @@ class ProgressRepository(private val context: Context) {
     }
 
     /**
+     * Records (or removes) a use on exactly [epochDay] — the explicit form
+     * of [toggleUse] for callers like the weekly word that track their own
+     * logged state. Recording a use marks the word Known.
+     */
+    suspend fun setUsed(wordId: String, epochDay: Long, used: Boolean) {
+        update(wordId) { p ->
+            if (used) p.copy(usedOnDays = p.usedOnDays + epochDay, status = WordStatus.Known)
+            else p.copy(usedOnDays = p.usedOnDays - epochDay)
+        }
+    }
+
+    /**
      * Applies [block] to [wordId]'s progress. Words without a stored entry
      * start from [WordProgress]'s defaults; callers that care about a
      * shipped-shelved word's starting status set it explicitly.

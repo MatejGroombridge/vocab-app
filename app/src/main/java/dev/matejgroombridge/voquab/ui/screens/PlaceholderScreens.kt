@@ -14,17 +14,6 @@ import dev.matejgroombridge.voquab.ui.components.PageHeader
 // behave like the finished app.
 
 @Composable
-fun WeekScreen(
-    onOpenSettings: () -> Unit,
-    contentPadding: PaddingValues = PaddingValues(),
-) = Placeholder(
-    title = "This Week",
-    message = "Your weekly word will live here.",
-    onOpenSettings = onOpenSettings,
-    contentPadding = contentPadding,
-)
-
-@Composable
 fun TodayScreen(
     onOpenSettings: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),

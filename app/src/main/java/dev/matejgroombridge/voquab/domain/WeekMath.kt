@@ -1,4 +1,4 @@
-package dev.matejgroombridge.voquab.ui.components
+package dev.matejgroombridge.voquab.domain
 
 import dev.matejgroombridge.voquab.data.settings.WeekStart
 import java.time.DayOfWeek
@@ -6,8 +6,8 @@ import java.time.LocalDate
 
 /**
  * Pure helpers for "what does the user's week look like?" math, parameterised
- * by their chosen [WeekStart]. Lives in the components package so cards /
- * dialogs / analytics can all share one definition.
+ * by their chosen [WeekStart]. Pure Kotlin so the weekly-word logic that
+ * depends on it can be unit-tested on the JVM.
  */
 object WeekMath {
 

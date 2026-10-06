@@ -1,6 +1,7 @@
 package dev.matejgroombridge.voquab.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -10,12 +11,14 @@ import dev.matejgroombridge.voquab.data.settings.Settings
 import dev.matejgroombridge.voquab.data.settings.SettingsRepository
 import dev.matejgroombridge.voquab.data.settings.WeekStart
 import dev.matejgroombridge.voquab.ui.theme.ThemeMode
+import dev.matejgroombridge.voquab.weekly.WeeklyAlarms
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
+    private val appContext: Context,
     private val repository: SettingsRepository,
 ) : ViewModel() {
 
@@ -41,10 +44,30 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setSwipeToNavigate(enabled) }
     }
 
+    fun setWeeklyEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setWeeklyEnabled(enabled)
+            WeeklyAlarms.rescheduleAll(appContext)
+        }
+    }
+
+    fun setWeeklyAnnounceTime(time: String) {
+        viewModelScope.launch {
+            repository.setWeeklyAnnounceTime(time)
+            WeeklyAlarms.rescheduleAll(appContext)
+        }
+    }
+
+    fun setWeeklyReminders(enabled: Boolean) {
+        // Reminders are decided at fire time, so the alarms needn't change.
+        viewModelScope.launch { repository.setWeeklyReminders(enabled) }
+    }
+
     companion object {
         fun factory(application: Application): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                SettingsViewModel(SettingsRepository(application.applicationContext))
+                val ctx = application.applicationContext
+                SettingsViewModel(ctx, SettingsRepository(ctx))
             }
         }
     }

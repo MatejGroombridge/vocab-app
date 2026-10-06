@@ -87,10 +87,10 @@ fun WordDetailDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 18.dp),
             ) {
-                // Header: word + pronunciation on the left, status actions
-                // on the right — same shape as the habit overview header.
-                Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
+                // Header: word + 🔊 on the left, status actions on the
+                // right — same shape as the habit overview header.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Text(
                             text = word.term,
                             style = MaterialTheme.typography.headlineSmall,
@@ -99,21 +99,15 @@ fun WordDetailDialog(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             softWrap = false,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = word.say,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        IconButton(onClick = onSpeak, modifier = Modifier.size(40.dp)) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                                contentDescription = "Pronounce ${word.term}",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
                             )
-                            IconButton(onClick = onSpeak, modifier = Modifier.size(36.dp)) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                                    contentDescription = "Pronounce ${word.term}",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
                         }
                     }
                     HeaderActionIcon(

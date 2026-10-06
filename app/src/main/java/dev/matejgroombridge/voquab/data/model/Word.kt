@@ -15,12 +15,14 @@ data class Word(
     val id: String,
     val term: String,
     val pos: String,
-    /** Plain-English respelling, stressed syllable in caps ("uh-DROYT"). */
-    val say: String,
     /** Two-or-three word meaning, short enough for a notification button. */
     val gloss: String,
     val definition: String,
-    /** Example sentences with the target word wrapped in `*asterisks*`. */
+    /**
+     * One or two example sentences with the target word wrapped in
+     * `*asterisks*`. Two only when they show a different sense, form or
+     * situation; pronunciation comes from text-to-speech, not a respelling.
+     */
     val examples: List<String> = emptyList(),
     /** One-line origin story / memory hook. */
     val hook: String? = null,
@@ -30,7 +32,7 @@ data class Word(
     val conversational: Int = 1,
     /** Introduction order: 3 first, 1 last. */
     val usefulness: Int = 1,
-    /** Ready-to-say lines for the weekly word. */
+    /** One or two ready-to-say lines for the weekly word, as different as the examples. */
     val openers: List<String> = emptyList(),
     /** The form originally looked up on the Kindle, when it differs from [term]. */
     val lookedUp: String? = null,

@@ -11,6 +11,14 @@
         </intent>
     </queries>
 
+    <!-- Weekly-word notifications. POST_NOTIFICATIONS is requested at
+         runtime (Week tab / Settings); the others keep the two daily
+         alarms firing on time through Doze and reboots. USE_EXACT_ALARM is
+         granted automatically on 13+; older versions fall back to inexact. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -32,6 +40,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Morning / evening weekly-word checks. Boot and package-replaced
+             are listened for because both wipe AlarmManager. -->
+        <receiver
+            android:name=".weekly.WeeklyAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- "I used it" / "Swap word" buttons on notifications. -->
+        <receiver
+            android:name=".weekly.WeeklyActionReceiver"
+            android:exported="false" />
 
     </application>
 
