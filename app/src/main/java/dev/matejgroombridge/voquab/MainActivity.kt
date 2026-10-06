@@ -1,5 +1,6 @@
 package dev.matejgroombridge.voquab
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,12 +28,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dev.matejgroombridge.voquab.ui.LibraryViewModel
 import dev.matejgroombridge.voquab.ui.SettingsViewModel
 import dev.matejgroombridge.voquab.ui.screens.LibraryScreen
 import dev.matejgroombridge.voquab.ui.screens.SettingsScreen
@@ -94,6 +97,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AppShell(settingsViewModel: SettingsViewModel) {
     val navController = rememberNavController()
+    val app = LocalContext.current.applicationContext as Application
+
+    val libraryViewModel: LibraryViewModel = viewModel(
+        factory = LibraryViewModel.factory(app),
+    )
 
     NavHost(
         navController = navController,
@@ -103,6 +111,7 @@ private fun AppShell(settingsViewModel: SettingsViewModel) {
         composable(Routes.MAIN) {
             MainPager(
                 settingsViewModel = settingsViewModel,
+                libraryViewModel = libraryViewModel,
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
@@ -124,6 +133,7 @@ private fun AppShell(settingsViewModel: SettingsViewModel) {
 @Composable
 private fun MainPager(
     settingsViewModel: SettingsViewModel,
+    libraryViewModel: LibraryViewModel,
     onOpenSettings: () -> Unit,
 ) {
     val pagerState = rememberPagerState(
@@ -185,7 +195,11 @@ private fun MainPager(
             when (page) {
                 0 -> WeekScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
                 TODAY_PAGE_INDEX -> TodayScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
-                2 -> LibraryScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
+                2 -> LibraryScreen(
+                    viewModel = libraryViewModel,
+                    onOpenSettings = onOpenSettings,
+                    contentPadding = padding,
+                )
             }
         }
     }

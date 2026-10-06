@@ -18,8 +18,8 @@ learning can happen from the notification shade and the home screen.
 3. **A small fixed daily amount with no backlog.** There is a hard cap on
    cards per day. Missed days don't pile up, and there is never a
    "247 due" counter.
-4. **Meaning over memorisation.** Each word comes with the sentence you
-   found it in, a one-line origin story and ready-to-say example lines.
+4. **Meaning over memorisation.** Each word comes with natural example
+   sentences, a one-line origin story and ready-to-say example lines.
    This makes reviews feel like curiosity rather than drilling.
 5. **Using a word beats recalling it.** The weekly word, used in a real
    conversation, is the main goal. Flashcards are only scaffolding for it.
@@ -31,7 +31,7 @@ learning can happen from the notification shade and the home screen.
 ## 2. How a word moves through the app
 
 ```
- Inbox ──► Meet ──► Learning (stages 1–5) ──► Known ──(every ~4 months)──► check
+ New ────► Meet ──► Learning (stages 1–5) ──► Known ──(every ~4 months)──► check
    │         │            │   ▲                  ▲
    │         │      miss: │   │ hit: next stage   │
    │         │   back one stage, due tomorrow     │
@@ -45,7 +45,7 @@ learning can happen from the notification shade and the home screen.
 
 | Stage | Interval after a hit | Card | Graded by |
 |---|---|---|---|
-| Meet (0) | +1 day | Word, pronunciation, **your book sentence**, then definition + origin hook. Just read it. | — ("Got it" / "Already knew it" / "Not worth learning") |
+| Meet (0) | +1 day | Word, pronunciation, an example sentence, then definition + origin hook. Just read it. | — ("Got it" / "Already knew it" / "Not worth learning") |
 | 1 | +3 days | Word in its sentence → pick the meaning (3 options) | auto |
 | 2 | +7 days | Short meaning → pick the word (3 options) | auto |
 | 3 | +16 days | Fill-in-the-blank sentence → pick the word (3 options) | auto |
@@ -160,23 +160,25 @@ Week Start setting).
 
 ### 3.5 Library *(right tab)*
 
-- Search plus filter chips: All · Learning · Known · Inbox · Shelved.
-- A 2-column grid of word cards reused from `HabitCard`, coloured by stage
-  from the existing palette:
-  - Inbox = Fog
-  - Learning = Butter → Peach as the stage rises
+- Search plus filter chips: All · New · Learning · Known · Shelved. "All"
+  leaves out shelved words, which only appear under their own filter (so
+  there is no separate Shelved screen).
+- A 2-column grid of word cards, coloured by status from the existing
+  palette:
+  - New = Sky
+  - Learning = Butter (→ Peach as the stage rises, Phase 3)
   - Known = Mint
-  - Weekly word = Lavender
-- **Long-press** opens the word detail dialog, reused from the habit
-  overview dialog. It shows:
+  - Shelved = Fog, faded toward the background
+  - Weekly word = Lavender (Phase 2)
+- **Tap or long-press** opens the word detail dialog, adapted from the
+  habit overview dialog. It shows:
   - Word, pronunciation and 🔊.
-  - Definition, example, the **"From *Book Title*"** sentence, the origin
-    hook, related forms and synonyms.
-  - Stat tiles: Stage · Reviews · Times used.
-  - Actions: **I used this** (a use of *any* word counts and marks it
-    Known), Mark known, Shelve, Edit.
-- A header line such as "312 words · 41 learning · 27 known · 4 used this
-  month".
+  - Definition, examples with the word in bold, the origin hook, related
+    forms and synonyms, and the form you originally looked up.
+  - Actions: **I used this today** (a use of *any* word counts and marks
+    it Known; tap again to undo), Mark known, Shelve.
+  - *Phase 3 adds* stat tiles (Stage · Reviews · Times used) and Edit.
+- A header line such as "190 words · 41 learning · 27 known".
 - When a word becomes Known, it gets a small sparkle (delight moment #2,
   the last one; see `agent.md` §10.7.16).
 
@@ -197,54 +199,44 @@ available. This is for weeks when even opening the app feels like effort.
 4. **Learning:** Cards per day, New words per day, Week start.
 5. **General:**
    - Swipe to navigate, Pronunciation on/off.
-   - Navigation rows: Shelved words, Import words, Back up / restore
-     progress.
+   - Navigation rows: Import words, Back up / restore progress.
 6. **About**
 
 ---
 
 ## 4. Word content
 
-A plain word list isn't enough. The app needs definitions, wrong-answer
-options and example lines. **The plan is that you give me the list and I
-generate `app/src/main/assets/words.json` with the extra details**, then it
-ships in a release.
-- Adding words later works the same way: append to the source list,
-  regenerate, release.
-- The enrichment format is documented in `tools/README.md`, so any agent
-  can repeat it.
-
-```jsonc
-{
-  "id": "adroit",
-  "term": "adroit",
-  "pos": "adjective",
-  "ipa": "/əˈdrɔɪt/",
-  "gloss": "skilful",                // ≤18 chars, used on notification buttons
-  "definition": "Clever or skilful with your hands or mind.",
-  "examples": ["She gave an adroit answer that dodged the question.", "…"],
-  "hook": "French à droit, 'to the right': the right hand was the skilful one.",
-  "forms": ["adroitly", "adroitness", "maladroit"],
-  "synonyms": ["deft", "nimble"],
-  "conversational": 3,               // 1 = literary/technical … 3 = easy to say in conversation
-  "usefulness": 2,                   // controls the order words are introduced in
-  "openers": ["That was an adroit bit of parking.", "…", "…"],
-  "source": { "sentence": "…", "book": "…" }   // only if exported from Kindle
-}
-```
-
-- **Words are introduced most useful first**, so the words that pay off
-  soonest come up first and obscure ones wait. While generating the file I
-  will mark archaic or very specialised words, which start Shelved.
-  You can bring any of them back from the Library.
-- **The "From *Book*" sentence** is the strongest memory aid on the list
-  (you remember where you met the word). It needs Kindle's
-  **Vocabulary Builder** database: plug the Kindle into a computer over
-  USB and copy `system/vocabulary/vocab.db`. Its `LOOKUPS` table stores
-  every word you looked up with its sentence and book. A plain list or
-  `My Clippings.txt` also works, just without the sentence.
-- The word content (the asset) is kept separate from your progress
-  (DataStore), so regenerating the asset never resets learning history.
+You supply a plain list; I write the definitions, examples and everything
+else into `app/src/main/assets/words.json`, and it ships in a release.
+- **The first batch is done:** 209 words from your Kindle list
+  (`tools/words.txt`). 190 are active and 19 start shelved. 151 of the
+  active words are conversational enough to be a weekly word, which is
+  about three years of weekly words.
+- **The format and writing guidelines** are in [`tools/README.md`](tools/README.md).
+  Each word has a respelling (`uh-DROYT`, easier to read than IPA), a
+  short meaning for notification buttons, a definition, 2+ examples with
+  the word marked, a real origin story, related forms, synonyms, and
+  conversation openers for weekly-word candidates.
+- **Adding words:** append them to `tools/words.txt`, ask me to write the
+  entries, then run `node tools/check-words.mjs --fix`. It validates
+  every entry and confirms each listed word is covered.
+- **Looked-up forms are reduced to the dictionary form** (affably →
+  affable, castigation → castigate). The original is kept and shown as
+  "You looked up …". `ennobl` was read as *ennoble*.
+- **Shelved from the start** (each can be unshelved in the Library):
+  - Everyday words: success, practical, severe, navel, disown, dang,
+    slang, paella, sorority, quasi.
+  - Names: Charlemagne, Mennonite, Moulin Rouge.
+  - Offensive or archaic terms: coolie, negroid, transvestite, whoreson.
+  - Not standalone English: fraile (Spanish), demi (a prefix).
+- **Words are introduced most useful first:** 55 high-value words, then
+  87 mid, then 48 niche ones (*ammonite*, *pericope*).
+- **The word content is kept separate from your progress** (DataStore,
+  keyed by `id`), so regenerating the file never resets learning history.
+- *Later, optional:* a Kindle Vocabulary Builder export
+  (`system/vocabulary/vocab.db`) would add the original book sentence
+  for each word, which is a strong memory aid. It's not needed for
+  anything else.
 
 ---
 
@@ -262,7 +254,7 @@ scheduling tests.
 | `MainActivity` pager (Past Week · **Today** · All Time) | This Week · **Today** · Library | Adapt |
 | `HabitCard`, `HabitOverviewDialog` | `WordCard`, `WordDetailDialog` | Adapt |
 | `AnalyticsScreen` grid | Weekly streak history grid (inside Week tab) | Adapt |
-| `ArchivedHabitsScreen` | `ShelvedWordsScreen` | Adapt |
+| `ArchivedHabitsScreen` | Shelved filter in the Library | Replace |
 | `Settings` / `SettingsRepository` / `SettingsScreen` | Same pattern, new fields (§3.7) | Adapt |
 | `Notifications`, `ReminderScheduler`, `ReminderReceiver` | One scheduler handling 4 alarm types: quiz, announcement, nudge, last call | Adapt |
 | `widget/*` + config activity | `WordWidget`, `WeeklyWordWidget` | Adapt |
@@ -272,20 +264,20 @@ scheduling tests.
 ### New code
 
 ```
-data/model/      Word (asset content) · CardState (progress) · WeeklyWeek · Review
+data/model/      Word (asset content) · WordProgress (progress) · WeeklyWeek · Review
 data/repository/ WordRepository (asset + custom words) · ProgressRepository (DataStore)
 domain/          Scheduler · DailySet · Distractors · WeeklyWordPicker · Streak   ← plain Kotlin, unit-tested
 notifications/   QuizNotification · QuizAnswerReceiver · WeeklyWordAlarms
 tts/             Speaker (wrapper around Android's TextToSpeech)
-ui/screens/      TodayScreen · WeekScreen · LibraryScreen · ShelvedWordsScreen · SettingsScreen
+ui/screens/      TodayScreen · WeekScreen · LibraryScreen · SettingsScreen
 ui/components/   ReviewCard (Meet / MultipleChoice / Cloze / Recall) · WordCard · WordDetailDialog
 widget/          WordWidget · WeeklyWordWidget (+ receivers)
 ```
 
 **Storage:** the same pattern as the Habit Tracker, one JSON value per
 DataStore key:
-- `progress`: map from word ID to `CardState` (stage, due day, lapses,
-  uses)
+- `progress`: map from word ID to `WordProgress` (status and use days
+  now; Phase 3 adds stage, due day and lapses)
 - `weekly`: list of weekly-word entries (week, word, used on, note,
   swapped)
 - `custom_words`
@@ -306,7 +298,7 @@ functions get JVM unit tests. Cases to cover:
 
 ## 6. Phases (each one ends with a `bin/changeset` release)
 
-**Phase 0: Repo surgery** *(do this first, see the warning below)*
+**Phase 0: Repo surgery** — ✔ done
 - Start fresh git history and create a new `voquab` GitHub repo with the
   5 secrets.
 - Rename everything from `habittracker` to `voquab`:
@@ -322,9 +314,10 @@ functions get JVM unit tests. Cases to cover:
 - ✅ A blank 3-tab app builds (`assembleDebug`) and installs **next to**
   Habit Tracker without replacing it.
 
-**Phase 1: Words + Library** *(needs your list)*
+**Phase 1: Words + Library** — ✔ built
 - Generate `words.json`, add `WordRepository`, the Library tab, the word
-  detail dialog and text-to-speech.
+  detail dialog and text-to-speech. Also add the 4am day rollover
+  (`domain/Day`), which every later phase uses.
 - ✅ All your words can be browsed and searched, with full details.
 
 **Phase 2: Weekly word + streak** *(your core requirement, so it ships early)*
@@ -345,7 +338,7 @@ functions get JVM unit tests. Cases to cover:
 **Phase 5: Polish + capture**
 - **Add a word from anywhere:** an Android `PROCESS_TEXT` handler puts
   "Add to Voquab" in the text-selection menu of Chrome and most other
-  apps. New words land in the Inbox. An optional definition lookup via
+  apps. New words land in the New list. An optional definition lookup via
   dictionaryapi.dev would need the INTERNET permission; otherwise words
   wait until the next time I regenerate the word file.
 - Back up and restore progress as JSON, a launcher icon, the
@@ -353,16 +346,15 @@ functions get JVM unit tests. Cases to cover:
 
 ---
 
-## 7. Open questions
+## 7. Decisions
 
-1. **What does your Kindle export look like?** Is it the Vocabulary
-   Builder `vocab.db` (best, because it includes the sentence and book),
-   `My Clippings.txt`, or a plain list?
-2. **Roughly how many words?** That decides the new-words default. At
-   1 a day, 300 words take about 10 months. For a larger list I'd still
-   keep the default low and let the most-useful-first order do the work.
-3. **Use count:** is one logged use per week enough for the streak, or do
-   you want "use it N times" as an option?
+1. **Word source:** a plain list. There are no book sentences for now, and
+   the format allows adding them later from `vocab.db`.
+2. **Defaults:** 1 new word a day, 5 cards a day. At that pace the 190
+   active words take about 6 months to introduce, most useful first.
+3. **Streak rule:** one logged use per week keeps the streak. There's no
+   "use it N times" option. It would add friction, and the goal is a
+   habit, not a quota.
 
 ## 8. Deliberately left out
 
@@ -372,11 +364,7 @@ celebration animations.
 
 ---
 
-> ⚠️ **The copied folder is still wired to Habit Tracker.**
-> - `voquab/.git` is a full copy of Habit Tracker's history.
-> - `origin` points to `MatejGroombridge/habit-tracker-app`.
-> - `applicationId` is still `dev.matejgroombridge.habittracker`.
->
-> If you run `bin/changeset` from here, it would tag and release into the
-> **habit tracker repo**. Groom Hub would then push this app over your
-> real Habit Tracker as an "update". Phase 0 fixes all three.
+> ✔ **The link to Habit Tracker has been cut** (Phase 0). The repo has
+> fresh history with no remote, and the app ID is now
+> `dev.matejgroombridge.voquab`. Before the first release, create the
+> `voquab` GitHub repo, add the 5 secrets (`agent.md` §13 D), and push.

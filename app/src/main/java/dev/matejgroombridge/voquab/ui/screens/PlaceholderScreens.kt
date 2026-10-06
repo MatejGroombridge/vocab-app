@@ -36,17 +36,6 @@ fun TodayScreen(
 )
 
 @Composable
-fun LibraryScreen(
-    onOpenSettings: () -> Unit,
-    contentPadding: PaddingValues = PaddingValues(),
-) = Placeholder(
-    title = "Library",
-    message = "Every word you're learning will be listed here.",
-    onOpenSettings = onOpenSettings,
-    contentPadding = contentPadding,
-)
-
-@Composable
 private fun Placeholder(
     title: String,
     message: String,
