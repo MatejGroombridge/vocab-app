@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Voquab</string>
+    <string name="word_widget_label">Voquab word</string>
+    <string name="word_widget_description">A word you\'re learning, changing every few hours.</string>
+    <string name="weekly_widget_label">Voquab weekly word</string>
+    <string name="weekly_widget_description">This week\'s word, your streak, and a one-tap \"I used it\".</string>
+    <string name="add_word_label">Add to Voquab</string>
 </resources>

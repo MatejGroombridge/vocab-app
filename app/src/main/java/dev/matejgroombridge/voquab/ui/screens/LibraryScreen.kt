@@ -182,7 +182,10 @@ private fun summary(state: LibraryUiState, filter: LibraryFilter, shown: Int): S
     if (filter != LibraryFilter.All) return "$shown ${if (shown == 1) "word" else "words"}"
     val learning = state.count(WordStatus.Learning)
     val known = state.count(WordStatus.Known)
-    return "$shown words · $learning learning · $known known"
+    val month = java.time.LocalDate.ofEpochDay(state.todayEpochDay).withDayOfMonth(1).toEpochDay()
+    val usedThisMonth = state.entries.count { e -> e.progress?.usedOnDays?.any { it >= month } == true }
+    val used = if (usedThisMonth > 0) " · $usedThisMonth used this month" else ""
+    return "$shown words · $learning learning · $known known$used"
 }
 
 private fun emptyMessage(filter: LibraryFilter): String = when (filter) {

@@ -8,6 +8,12 @@ import dev.matejgroombridge.voquab.ui.theme.ThemeMode
  * mapping in [SettingsRepository], and a row in `SettingsScreen`.
  */
 data class Settings(
+    /**
+     * Passive mode: no in-app session — the day's cards arrive only as
+     * notification quizzes (and the widget). For weeks when even opening
+     * the app feels like effort. Forces quiz notifications on.
+     */
+    val passiveMode: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.System,
     /** When [ThemeMode] resolves to dark, render with pure black backgrounds. */
     val amoled: Boolean = false,
@@ -22,6 +28,31 @@ data class Settings(
      */
     val swipeToNavigate: Boolean = true,
     val weekly: WeeklyNotificationSettings = WeeklyNotificationSettings(),
+    val learning: LearningSettings = LearningSettings(),
+    val quizzes: QuizNotificationSettings = QuizNotificationSettings(),
+)
+
+/**
+ * @param cardsPerDay  Hard cap on the day's set (PLAN.md §3.1), 1–10.
+ * @param newPerDay    New words introduced per day, 0–3.
+ */
+data class LearningSettings(
+    val cardsPerDay: Int = 5,
+    val newPerDay: Int = 1,
+)
+
+/**
+ * Notification quizzes: the day's cards as one-tap questions in the shade.
+ *
+ * @param timesPerDay  Quiz "sessions" per day, spread evenly between [firstTime]
+ *                     and [lastTime]. Each starts with the next unanswered card
+ *                     and offers "Next card" until the set is done.
+ */
+data class QuizNotificationSettings(
+    val enabled: Boolean = true,
+    val timesPerDay: Int = 3,
+    val firstTime: String = "09:00",
+    val lastTime: String = "20:00",
 )
 
 /**

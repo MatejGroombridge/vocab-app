@@ -7,6 +7,15 @@ history.
 
 ## Adding words
 
+Words added on the phone ("Add to Voquab" from another app) are stored on
+the device with a dictionary definition, not in this file. If you'd rather
+have the hand-written treatment (origin story, openers), add them here too.
+The phone's copy (id `custom-…`) then stays as a separate "Added by you"
+entry. Shelve it, since progress is stored per id and doesn't move across. Words the app couldn't define are listed under *Settings → Words
+waiting*, which shares them as a comma-separated list ready to paste into
+`words.txt`.
+
+
 1. Append the new words to `words.txt`, exactly as they were looked up
    (inflected forms, capitals and typos are all fine).
 2. Write an entry for each one in `words.json` (an AI agent can do this from

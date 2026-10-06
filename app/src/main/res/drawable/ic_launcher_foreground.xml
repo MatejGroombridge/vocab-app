@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Default launcher icon foreground shared by all apps in the family: a clean
-    3x3 grid of dots, drawn in white at the centre of the adaptive-icon
-    viewport. Replace this file per-app when you have a real glyph.
+    Voquab glyph: a speech bubble (words are for saying) with a "V" cut
+    through it. One even-odd path, so the V is a hole rather than a second
+    colour: on the launcher the dark background shows through, and as a
+    notification small icon (which only uses alpha) it still reads as a V.
 
-    Geometry: nine 14-unit-diameter circles laid out on a 3x3 grid with 16-unit
-    centres, sitting within the centre 48x48 region of the 108x108 launcher
-    viewport. That leaves ~30 units of padding on each side, well inside the
-    adaptive-icon safe zone, so OEM icon-shape masks (circle, squircle,
-    teardrop, etc.) won't clip into it.
+    Drawn inside the central ~52x50 of the 108x108 adaptive-icon viewport,
+    well within the safe zone so circle/squircle masks never clip it.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -16,27 +14,9 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Row 1 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 38,38 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 54,38 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 70,38 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-
-    <!-- Row 2 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 38,54 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 54,54 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 70,54 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-
-    <!-- Row 3 -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 38,70 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 54,70 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M 70,70 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M38,30 h32 a10,10 0 0 1 10,10 v20 a10,10 0 0 1 -10,10 h-22 l-12,10 l2,-10 a10,10 0 0 1 -10,-10 v-20 a10,10 0 0 1 10,-10 z
+            M40,40 L46.5,40 L54,51.5 L61.5,40 L68,40 L54,61 z" />
 </vector>

@@ -3,6 +3,17 @@ package dev.matejgroombridge.voquab.ui.screens
 import android.Manifest
 import android.app.TimePickerDialog
 import android.os.Build
+import android.content.Intent
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -68,11 +79,60 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val pending by viewModel.pendingWords.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val payload = viewModel.exportBackup()
+            val ok = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(payload.toByteArray()) }
+            }.isSuccess
+            snackbar.showSnackbar(if (ok) "Backup saved" else "Couldn't save the backup")
+        }
+    }
+    var pendingRestore by remember { mutableStateOf<String?>(null) }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val raw = runCatching {
+            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()
+        if (raw == null) scope.launch { snackbar.showSnackbar("Couldn't read that file") } else pendingRestore = raw
+    }
+    pendingRestore?.let { raw ->
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("Restore from backup?") },
+            text = { Text("This replaces your current progress, weekly-word history and added words with the backup's.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRestore = null
+                    scope.launch {
+                        val count = viewModel.restoreBackup(raw)
+                        snackbar.showSnackbar(if (count != null) "Restored progress for $count words" else "That isn't a Voquab backup")
+                    }
+                }) { Text("Restore") }
+            },
+            dismissButton = { TextButton(onClick = { pendingRestore = null }) { Text("Cancel") } },
+        )
+    }
+
+    val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    } else null
+    val askForNotifications = {
+        if (notifPermission != null && !hasNotificationPermission(context)) {
+            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = {
@@ -104,6 +164,29 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            // Mode ----------------------------------------------------------
+            SectionCaption("Mode")
+            SettingsCard(contentPadding = 0.dp) {
+                Column {
+                    CompactSwitchRow(
+                        label = "Passive mode",
+                        checked = settings.passiveMode,
+                        onCheckedChange = {
+                            haptics.light()
+                            viewModel.setPassiveMode(it)
+                            if (it) askForNotifications()
+                        },
+                    )
+                    if (settings.passiveMode) {
+                        Divider()
+                        Hint(
+                            "No sessions in the app: your daily cards arrive as notifications, " +
+                                "answered with one tap. Quizzes stay on while this is on.",
+                        )
+                    }
+                }
+            }
+
             // Appearance ----------------------------------------------------
             SectionCaption("Appearance")
             SettingsCard(contentPadding = 0.dp) {
@@ -131,21 +214,13 @@ fun SettingsScreen(
             SectionCaption("Notifications")
             SettingsCard(contentPadding = 0.dp) {
                 Column {
-                    val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                            // Denied: switch back off so the setting matches reality.
-                            if (!granted) viewModel.setWeeklyEnabled(false)
-                        }
-                    } else null
                     CompactSwitchRow(
                         label = "Weekly word",
                         checked = settings.weekly.enabled,
                         onCheckedChange = { wantsOn ->
                             haptics.light()
                             viewModel.setWeeklyEnabled(wantsOn)
-                            if (wantsOn && notifPermission != null && !hasNotificationPermission(context)) {
-                                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
+                            if (wantsOn) askForNotifications()
                         },
                     )
                     if (settings.weekly.enabled) {
@@ -168,6 +243,78 @@ fun SettingsScreen(
                             },
                         )
                     }
+                    Divider()
+                    val quizzesOn = settings.quizzes.enabled || settings.passiveMode
+                    CompactSwitchRow(
+                        label = "Daily quizzes",
+                        checked = quizzesOn,
+                        enabled = !settings.passiveMode,
+                        onCheckedChange = { wantsOn ->
+                            haptics.light()
+                            viewModel.setQuizEnabled(wantsOn)
+                            if (wantsOn) askForNotifications()
+                        },
+                    )
+                    if (quizzesOn) {
+                        Divider()
+                        StepperRow(
+                            label = "Quizzes per day",
+                            value = settings.quizzes.timesPerDay,
+                            min = 1, max = 6,
+                            onChange = {
+                                haptics.light()
+                                viewModel.setQuizTimes(it)
+                            },
+                        )
+                        Divider()
+                        TimeRow(
+                            label = if (settings.quizzes.timesPerDay == 1) "Quiz time" else "First quiz",
+                            time = settings.quizzes.firstTime,
+                            onPick = {
+                                haptics.light()
+                                viewModel.setQuizFirstTime(it)
+                            },
+                        )
+                        if (settings.quizzes.timesPerDay > 1) {
+                            Divider()
+                            TimeRow(
+                                label = "Last quiz",
+                                time = settings.quizzes.lastTime,
+                                onPick = {
+                                    haptics.light()
+                                    viewModel.setQuizLastTime(it)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Learning ------------------------------------------------------
+            SectionCaption("Learning")
+            SettingsCard(contentPadding = 0.dp) {
+                Column {
+                    StepperRow(
+                        label = "Cards per day",
+                        value = settings.learning.cardsPerDay,
+                        min = 1, max = 10,
+                        onChange = {
+                            haptics.light()
+                            viewModel.setCardsPerDay(it)
+                        },
+                    )
+                    Divider()
+                    StepperRow(
+                        label = "New words per day",
+                        value = settings.learning.newPerDay,
+                        min = 0, max = 3,
+                        onChange = {
+                            haptics.light()
+                            viewModel.setNewPerDay(it)
+                        },
+                    )
+                    Divider()
+                    Hint("Changes apply from tomorrow's cards.")
                 }
             }
 
@@ -191,6 +338,33 @@ fun SettingsScreen(
                             viewModel.setWeekStart(it)
                         },
                     )
+                    Divider()
+                    NavRow(
+                        label = "Back up progress",
+                        onClick = {
+                            haptics.light()
+                            exportLauncher.launch("voquab-backup.json")
+                        },
+                    )
+                    Divider()
+                    NavRow(
+                        label = "Restore from backup",
+                        onClick = {
+                            haptics.light()
+                            importLauncher.launch(arrayOf("application/json", "text/plain"))
+                        },
+                    )
+                    if (pending.isNotEmpty()) {
+                        Divider()
+                        NavRow(
+                            label = "Words waiting (${pending.size})",
+                            onClick = {
+                                haptics.light()
+                                sharePending(context, pending)
+                                viewModel.clearPending()
+                            },
+                        )
+                    }
                 }
             }
 
@@ -218,6 +392,80 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(20.dp))
         }
+    }
+}
+
+/** Shares captured-but-undefined words as plain text, ready to paste into tools/words.txt. */
+private fun sharePending(context: android.content.Context, words: List<String>) {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Voquab words to add")
+        putExtra(Intent.EXTRA_TEXT, words.joinToString(", "))
+    }
+    context.startActivity(Intent.createChooser(send, "Send words to add"))
+}
+
+@Composable
+private fun Hint(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+@Composable
+private fun StepperRow(label: String, value: Int, min: Int, max: Int, onChange: (Int) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = SETTINGS_ROW_MIN_HEIGHT)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = { if (value > min) onChange(value - 1) }, enabled = value > min) {
+            Text("−", style = MaterialTheme.typography.titleLarge)
+        }
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        IconButton(onClick = { if (value < max) onChange(value + 1) }, enabled = value < max) {
+            Text("+", style = MaterialTheme.typography.titleLarge)
+        }
+    }
+}
+
+@Composable
+private fun NavRow(label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = SETTINGS_ROW_MIN_HEIGHT)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -345,6 +593,7 @@ private fun ThemeButton(
 private fun CompactSwitchRow(
     label: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     // All rows in a unified card are pinned to the same minimum height
@@ -356,16 +605,16 @@ private fun CompactSwitchRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = SETTINGS_ROW_MIN_HEIGHT)
-            .clickable { onCheckedChange(!checked) }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.5f),
             modifier = Modifier.weight(1f),
         )
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 

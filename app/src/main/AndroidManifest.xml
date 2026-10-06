@@ -19,6 +19,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
+    <!-- Only used to look up a definition when a word is added from another
+         app ("Add to Voquab"). Everything else is offline. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -56,6 +60,61 @@
         <receiver
             android:name=".weekly.WeeklyActionReceiver"
             android:exported="false" />
+
+        <!-- Daily quiz alarms and the quiz answer buttons. -->
+        <receiver
+            android:name=".learning.QuizReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- "Add to Voquab" in other apps' text-selection menu (PROCESS_TEXT)
+             and the share sheet. Transparent: just a small dialog. -->
+        <activity
+            android:name=".capture.AddWordActivity"
+            android:exported="true"
+            android:label="@string/add_word_label"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.App.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Home-screen widgets. -->
+        <receiver
+            android:name=".widget.WordWidgetReceiver"
+            android:exported="true"
+            android:label="@string/word_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/word_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.WeeklyWidgetReceiver"
+            android:exported="true"
+            android:label="@string/weekly_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weekly_widget_info" />
+        </receiver>
 
     </application>
 

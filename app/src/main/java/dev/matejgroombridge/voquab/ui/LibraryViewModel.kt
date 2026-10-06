@@ -14,7 +14,6 @@ import dev.matejgroombridge.voquab.domain.Day
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,7 +32,7 @@ class LibraryViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<LibraryUiState> = combine(
-        flow { emit(words.words()) },
+        words.all,
         progress.progress,
     ) { all, progressById ->
         LibraryUiState(

@@ -39,6 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.matejgroombridge.voquab.ui.LibraryViewModel
 import dev.matejgroombridge.voquab.ui.SettingsViewModel
+import dev.matejgroombridge.voquab.ui.TodayViewModel
 import dev.matejgroombridge.voquab.ui.WeekViewModel
 import dev.matejgroombridge.voquab.ui.screens.LibraryScreen
 import dev.matejgroombridge.voquab.ui.screens.SettingsScreen
@@ -46,6 +47,8 @@ import dev.matejgroombridge.voquab.ui.screens.TodayScreen
 import dev.matejgroombridge.voquab.ui.screens.WeekScreen
 import dev.matejgroombridge.voquab.ui.theme.AppTheme
 import dev.matejgroombridge.voquab.ui.util.rememberHaptics
+import dev.matejgroombridge.voquab.learning.QuizAlarms
+import dev.matejgroombridge.voquab.learning.QuizNotifications
 import dev.matejgroombridge.voquab.weekly.WeeklyAlarms
 import dev.matejgroombridge.voquab.weekly.WeeklyNotifications
 import kotlinx.coroutines.launch
@@ -87,7 +90,11 @@ class MainActivity : ComponentActivity() {
         // Cheap and idempotent: make sure the weekly-word channel exists and
         // the daily alarms match current settings (they're lost on update).
         WeeklyNotifications.ensureChannel(this)
-        lifecycleScope.launch { WeeklyAlarms.rescheduleAll(applicationContext) }
+        QuizNotifications.ensureChannel(this)
+        lifecycleScope.launch {
+            WeeklyAlarms.rescheduleAll(applicationContext)
+            QuizAlarms.rescheduleAll(applicationContext)
+        }
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel(
@@ -123,6 +130,7 @@ class MainActivity : ComponentActivity() {
         /** Intent extra naming a top-level tab to open, e.g. from a notification. */
         const val EXTRA_OPEN_TAB = "open_tab"
         const val TAB_WEEK = "week"
+        const val TAB_TODAY = "today"
     }
 }
 
@@ -141,6 +149,9 @@ private fun AppShell(
     val weekViewModel: WeekViewModel = viewModel(
         factory = WeekViewModel.factory(app),
     )
+    val todayViewModel: TodayViewModel = viewModel(
+        factory = TodayViewModel.factory(app),
+    )
 
     // A notification tap should land on the pager even if Settings is open.
     LaunchedEffect(requestedTab) {
@@ -157,6 +168,7 @@ private fun AppShell(
                 settingsViewModel = settingsViewModel,
                 libraryViewModel = libraryViewModel,
                 weekViewModel = weekViewModel,
+                todayViewModel = todayViewModel,
                 requestedTab = requestedTab,
                 onTabShown = onTabShown,
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -182,6 +194,7 @@ private fun MainPager(
     settingsViewModel: SettingsViewModel,
     libraryViewModel: LibraryViewModel,
     weekViewModel: WeekViewModel,
+    todayViewModel: TodayViewModel,
     requestedTab: String?,
     onTabShown: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -208,6 +221,7 @@ private fun MainPager(
     LaunchedEffect(requestedTab) {
         when (requestedTab) {
             MainActivity.TAB_WEEK -> pagerState.scrollToPage(WEEK_PAGE_INDEX)
+            MainActivity.TAB_TODAY -> pagerState.scrollToPage(TODAY_PAGE_INDEX)
             null -> return@LaunchedEffect
         }
         onTabShown()
@@ -257,7 +271,12 @@ private fun MainPager(
                     onOpenSettings = onOpenSettings,
                     contentPadding = padding,
                 )
-                TODAY_PAGE_INDEX -> TodayScreen(onOpenSettings = onOpenSettings, contentPadding = padding)
+                TODAY_PAGE_INDEX -> TodayScreen(
+                    viewModel = todayViewModel,
+                    onOpenSettings = onOpenSettings,
+                    onOpenWeek = { scope.launch { pagerState.animateScrollToPage(WEEK_PAGE_INDEX) } },
+                    contentPadding = padding,
+                )
                 2 -> LibraryScreen(
                     viewModel = libraryViewModel,
                     onOpenSettings = onOpenSettings,

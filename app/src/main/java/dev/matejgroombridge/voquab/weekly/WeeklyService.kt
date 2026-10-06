@@ -15,6 +15,7 @@ import dev.matejgroombridge.voquab.domain.PickCandidate
 import dev.matejgroombridge.voquab.domain.StreakStats
 import dev.matejgroombridge.voquab.domain.WeeklyEngine
 import dev.matejgroombridge.voquab.domain.WeeklyPicker
+import dev.matejgroombridge.voquab.widget.Widgets
 import kotlinx.coroutines.flow.first
 import java.time.LocalDateTime
 
@@ -35,7 +36,7 @@ data class WeeklySnapshot(
  * logged from the notification shade behaves exactly like one logged in the
  * app (including marking the word Known).
  */
-class WeeklyService(context: Context) {
+class WeeklyService(private val context: Context) {
 
     private val weekly = WeeklyRepository(context)
     private val progress = ProgressRepository(context)
@@ -48,6 +49,7 @@ class WeeklyService(context: Context) {
         val weekStart = settings.settings.first().weekStart
         val picker = picker()
         val state = weekly.update { WeeklyEngine.rollOver(it, today, weekStart) { exclude -> picker(exclude, today) } }
+        Widgets.refresh(context)
         return snapshot(state)
     }
 
@@ -85,6 +87,7 @@ class WeeklyService(context: Context) {
             })
         }
         loggedWord?.let { progress.setUsed(it, today, used = true) }
+        Widgets.refresh(context)
         return loggedWord != null
     }
 
@@ -99,6 +102,7 @@ class WeeklyService(context: Context) {
             })
         }
         undone?.let { w -> if (w.wordId != null && w.usedOn != null) progress.setUsed(w.wordId, w.usedOn, used = false) }
+        Widgets.refresh(context)
     }
 
     suspend fun setNote(weekStart: Long, note: String) {
@@ -122,6 +126,7 @@ class WeeklyService(context: Context) {
                 if (it.start == current.start) it.copy(wordId = replacement, swappedOut = current.wordId) else it
             })
         }
+        Widgets.refresh(context)
         return swapped
     }
 
@@ -145,6 +150,7 @@ class WeeklyService(context: Context) {
                 }
             })
         }
+        Widgets.refresh(context)
     }
 
     suspend fun markAnnounced(weekStart: Long) {

@@ -118,6 +118,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
 
+    // Home-screen widgets — Glance renders them with a Compose-style API.
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
     // Plain JVM tests for the pure rules in domain/ (streaks, scheduling).
     testImplementation(libs.junit)
 }

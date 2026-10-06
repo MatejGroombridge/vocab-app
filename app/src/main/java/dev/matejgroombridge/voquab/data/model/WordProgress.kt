@@ -22,6 +22,18 @@ data class WordProgress(
     val status: WordStatus = WordStatus.New,
     /** Epoch days on which the user used the word in a real conversation. */
     val usedOnDays: Set<Long> = emptySet(),
+    /**
+     * Learning stage, 0–5 (PLAN.md §2): 0 = meet (read the word), 1–3 =
+     * multiple-choice cards of rising difficulty, 4–5 = recall. Only
+     * meaningful while [status] is Learning.
+     */
+    val stage: Int = 0,
+    /** Epoch day the next card for this word is due; null = not scheduled. */
+    val dueDay: Long? = null,
+    /** Consecutive misses — two in a row sends the word back to stage 0. */
+    val lapses: Int = 0,
+    val reviews: Int = 0,
+    val introducedOn: Long? = null,
 )
 
 /** A word joined with its progress — what every screen actually renders. */
@@ -32,6 +44,8 @@ data class WordEntry(
     val status: WordStatus
         get() = progress?.status
             ?: if (word.shelvedReason != null) WordStatus.Shelved else WordStatus.New
+
+    val stage: Int get() = progress?.stage ?: 0
 
     val timesUsed: Int get() = progress?.usedOnDays?.size ?: 0
 

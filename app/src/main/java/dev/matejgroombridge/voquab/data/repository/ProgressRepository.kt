@@ -68,12 +68,17 @@ class ProgressRepository(private val context: Context) {
      * start from [WordProgress]'s defaults; callers that care about a
      * shipped-shelved word's starting status set it explicitly.
      */
-    private suspend fun update(wordId: String, block: (WordProgress) -> WordProgress) {
+    suspend fun update(wordId: String, block: (WordProgress) -> WordProgress) {
         context.progressDataStore.edit { prefs ->
             val current = load(prefs[KEY_PROGRESS_JSON])
             val updated = current + (wordId to block(current[wordId] ?: WordProgress()))
             prefs[KEY_PROGRESS_JSON] = json.encodeToString(mapSerializer, updated)
         }
+    }
+
+    /** Replaces everything — used by backup restore. */
+    suspend fun replaceAll(all: Map<String, WordProgress>) {
+        context.progressDataStore.edit { prefs -> prefs[KEY_PROGRESS_JSON] = json.encodeToString(mapSerializer, all) }
     }
 
     private fun load(raw: String?): Map<String, WordProgress> {

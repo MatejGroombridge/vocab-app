@@ -17,7 +17,6 @@ import dev.matejgroombridge.voquab.weekly.WeeklyService
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -49,8 +48,9 @@ class WeekViewModel(
 
     val uiState: StateFlow<WeekUiState> = combine(
         weekly.state,
-        flow { emit(words.words().associateBy { it.id }) },
-    ) { state, byId ->
+        words.all,
+    ) { state, all ->
+        val byId = all.associateBy { it.id }
         val today = Day.today()
         val now = LocalDateTime.now()
         val current = WeeklyEngine.current(state, today)

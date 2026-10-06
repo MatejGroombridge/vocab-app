@@ -40,7 +40,7 @@ fun WordCard(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
-    val color = entry.status.paletteEntry()
+    val color = entry.paletteEntry()
     // Shelved words are pulled toward the page background so they read as
     // set aside rather than as another active state.
     val container = if (entry.status == WordStatus.Shelved) {

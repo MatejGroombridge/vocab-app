@@ -19,6 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.Stairs
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
@@ -66,7 +69,7 @@ fun WordDetailDialog(
 ) {
     val word = entry.word
     val status = entry.status
-    val accent = status.paletteEntry().accent
+    val accent = entry.paletteEntry().accent
     val haptics = rememberHaptics()
     val usedToday = entry.usedOn(todayEpochDay)
 
@@ -137,6 +140,7 @@ fun WordDetailDialog(
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Chip(text = word.pos, accent = MaterialTheme.colorScheme.outlineVariant)
+                    if (word.id.startsWith("custom-")) Chip(text = "Added by you", accent = MaterialTheme.colorScheme.outlineVariant)
                     Chip(
                         text = if (status == WordStatus.Shelved && word.shelvedReason != null)
                             "Shelved · ${word.shelvedReason.label}"
@@ -214,6 +218,22 @@ fun WordDetailDialog(
                 }
 
                 Spacer(Modifier.height(18.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatTile(
+                        label = "Stage",
+                        value = when (status) {
+                            WordStatus.Learning -> "${entry.stage}/5"
+                            WordStatus.Known -> "✓"
+                            else -> "–"
+                        },
+                        icon = Icons.Outlined.Stairs,
+                        accent = accent,
+                        modifier = Modifier.weight(1f),
+                    )
+                    StatTile("Reviews", (entry.progress?.reviews ?: 0).toString(), Icons.Outlined.Replay, accent, Modifier.weight(1f))
+                    StatTile("Used", entry.timesUsed.toString(), Icons.Outlined.Forum, accent, Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(14.dp))
                 FilledTonalButton(
                     onClick = {
                         haptics.completion()

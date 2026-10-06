@@ -349,23 +349,51 @@ functions get JVM unit tests. Cases to cover:
   morning, pause and resume. The rules have 23 JVM unit tests in
   `app/src/test`.)
 
-**Phase 3: Learning engine + Today**
-- Scheduler, daily-set builder, wrong-answer generator, the 4 card types,
-  the new-word cap, the 4am rollover, and tests.
-- ✅ 5 cards a day. Skipping 5 days leaves no backlog.
+**Phase 3: Learning engine + Today** — ✔ built
+- Scheduler (`domain/Scheduler`), daily-set builder (`DailySet`),
+  wrong-answer picker (`Quiz`), the meet / pick-the-meaning /
+  pick-the-word / fill-the-gap / recall cards, the new-word cap and
+  workload cap, and tests.
+- A right answer moves on after a beat; a wrong one shows the answer and
+  "It'll come back tomorrow". A word reaching Known gets the "✨ Learned!"
+  sparkle (delight moment #2). The done screen links to the weekly word
+  and offers "One more".
+- Wrong answers come from the user's own deck, same part of speech first.
+  Each candidate has a stable per-card rank, so adding a word mid-day never
+  reshuffles a card that's already been seen (the app and notifications
+  always match).
+- ✅ Day one is a single meet card (nothing is due yet). It grows towards
+  5 a day as words come due, and skipping days leaves no backlog.
 
-**Phase 4: Ambient learning**
-- Notification quizzes with answer buttons, both widgets, passive mode.
-- ✅ A full day's set can be completed without opening the app.
+**Phase 4: Ambient learning** — ✔ built
+- **Notification quizzes** (`learning/QuizNotifications`, `QuizReceiver`):
+  up to 6 a day, spread between the first and last time. Each one starts
+  with the next unanswered card: a meet card gets *Got it / Knew it*,
+  multiple choice gets three answer buttons, and recall becomes "which word
+  means…?". The result replaces the question, with *Next card (n left)*
+  until the set is done. They use a quiet (low-importance) channel.
+- **Widgets:** a word of the moment that changes every 3 hours, and the
+  weekly word with the streak and an *I used it* button. Both are redrawn
+  whenever progress changes.
+- **Passive mode** (Settings → Mode): the Today tab just reports progress,
+  and quizzes are forced on.
+- ✅ Checked on an emulator: a 2:30pm quiz ("Got it"), next-morning
+  multiple choice answered from the shade, "Next card", and the app's
+  Today tab in sync (same card, same options).
 
-**Phase 5: Polish + capture**
-- **Add a word from anywhere:** an Android `PROCESS_TEXT` handler puts
-  "Add to Voquab" in the text-selection menu of Chrome and most other
-  apps. New words land in the New list. An optional definition lookup via
-  dictionaryapi.dev would need the INTERNET permission; otherwise words
-  wait until the next time I regenerate the word file.
-- Back up and restore progress as JSON, a launcher icon, the
-  "used this month" stats.
+**Phase 5: Polish + capture** — ✔ built
+- **Add to Voquab** in any app's text-selection menu, and the share sheet.
+  The word is looked up on dictionaryapi.dev, falling back to Wiktionary,
+  and becomes a new word ("Added by you" in the Library). If both fail or
+  you're offline, it goes on *Settings → Words waiting*, which shares the
+  list so I can write the entries properly.
+- **Back up / Restore** progress, weekly history and added words as a JSON
+  file.
+- Launcher icon (a speech bubble with a V; also the notification icon),
+  Library colours deepen as words progress, a "used this month" count, and
+  Stage / Reviews / Used tiles in the word dialog.
+- Not built: editing a word's definition in-app. It's easier to ask me to
+  fix `words.json`.
 
 ---
 
