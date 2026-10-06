@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v0.3.0 — 2026-10-06
+
+Daily cards, notification quizzes, home-screen widgets, passive mode, and Add to Voquab from any app
+
+
 ## v0.2.0 — 2026-10-06
 
 Weekly word: one word a week to use in conversation, with streak, one-tap logging from notifications, and an Aussie voice
