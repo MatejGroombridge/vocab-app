@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v0.2.0 — 2026-10-06
+
+Weekly word: one word a week to use in conversation, with streak, one-tap logging from notifications, and an Aussie voice
+
+
 ## v0.1.1 — 2026-10-06
 
 Word library: browse and search 209 Kindle words with definitions, examples, origins and pronunciation
